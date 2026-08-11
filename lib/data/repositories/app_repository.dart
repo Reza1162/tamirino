@@ -135,7 +135,75 @@ class AppRepository {
     return debt;
   }
 
-  Future<int> todayIncome() async {
+// ---------- انبار قطعات ----------
+  Future<int> addPart({
+    required String name,
+    required int quantity,
+    required int purchasePrice,
+    required int sellPrice,
+  }) {
+    return db.into(db.parts).insert(
+          PartsCompanion.insert(
+            name: name,
+            quantity: Value(quantity),
+            purchasePrice: Value(purchasePrice),
+            sellPrice: Value(sellPrice),
+          ),
+        );
+  }
+
+  Stream<List<Part>> watchParts() => db.select(db.parts).watch();
+
+  Future<void> adjustPartQuantity(int partId, int delta) async {
+    final part = await (db.select(db.parts)..where((t) => t.id.equals(partId))).getSingle();
+    final newQty = (part.quantity + delta).clamp(0, 1 << 30);
+    await (db.update(db.parts)..where((t) => t.id.equals(partId)))
+        .write(PartsCompanion(quantity: Value(newQty)));
+  }
+
+  Future<void> usePartInOrder({
+    required int repairOrderId,
+    required int partId,
+    required int quantityUsed,
+  }) async {
+    await db.into(db.repairOrderParts).insert(
+          RepairOrderPartsCompanion.insert(
+            repairOrderId: repairOrderId,
+            partId: partId,
+            quantityUsed: Value(quantityUsed),
+          ),
+        );
+    await adjustPartQuantity(partId, -quantityUsed);
+  }
+
+  // ---------- گزارش سود ----------
+  Future<Map<String, int>> profitReport() async {
+    final orders = await db.select(db.repairOrders).get();
+    final delivered = orders.where((o) => o.status == 'delivered').toList();
+
+    int revenue = 0;
+    for (final o in delivered) {
+      revenue += (o.finalCost ?? o.estimatedCost ?? 0) - o.discount;
+    }
+
+    final usedParts = await db.select(db.repairOrderParts).get();
+    int partsCost = 0;
+    for (final up in usedParts) {
+      final part = await (db.select(db.parts)..where((t) => t.id.equals(up.partId))).getSingleOrNull();
+      if (part != null) {
+        partsCost += part.purchasePrice * up.quantityUsed;
+      }
+    }
+
+    return {
+      'revenue': revenue,
+      'partsCost': partsCost,
+      'profit': revenue - partsCost,
+      'ordersCount': delivered.length,
+    };
+  }
+
+    Future<int> todayIncome() async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final payments = await db.select(db.payments).get();

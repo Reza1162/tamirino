@@ -67,6 +67,24 @@ class BusinessSettings extends Table {
   TextColumn get jobType => text()();
 }
 
+// ---------- قطعات انبار ----------
+class Parts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  IntColumn get quantity => integer().withDefault(const Constant(0))();
+  IntColumn get purchasePrice => integer().withDefault(const Constant(0))();
+  IntColumn get sellPrice => integer().withDefault(const Constant(0))();
+  IntColumn get lowStockThreshold => integer().withDefault(const Constant(2))();
+}
+
+// ---------- مصرف قطعه در سفارش ----------
+class RepairOrderParts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get repairOrderId => integer().references(RepairOrders, #id)();
+  IntColumn get partId => integer().references(Parts, #id)();
+  IntColumn get quantityUsed => integer().withDefault(const Constant(1))();
+}
+
 @DriftDatabase(tables: [
   Customers,
   Devices,
@@ -74,12 +92,25 @@ class BusinessSettings extends Table {
   Payments,
   Reminders,
   BusinessSettings,
+  Parts,
+  RepairOrderParts,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(parts);
+            await m.createTable(repairOrderParts);
+          }
+        },
+      );
 }
 
 LazyDatabase _openConnection() {
