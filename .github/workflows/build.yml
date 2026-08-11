@@ -17,6 +17,13 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: دانلود فونت فارسی
+        run: |
+          mkdir -p assets/fonts
+          curl -L -o assets/fonts/Vazirmatn-Regular.ttf https://github.com/rastikerdar/vazirmatn/raw/main/fonts/ttf/Vazirmatn-Regular.ttf
+          curl -L -o assets/fonts/Vazirmatn-Bold.ttf https://github.com/rastikerdar/vazirmatn/raw/main/fonts/ttf/Vazirmatn-Bold.ttf
+          ls -la assets/fonts/
+
       - name: نصب پکیج‌ها
         run: flutter pub get
 
@@ -33,44 +40,26 @@ jobs:
           if [ ! -f "$GRADLE_FILE" ]; then
             GRADLE_FILE="android/app/build.gradle"
           fi
-          echo "Using $GRADLE_FILE"
           python3 - "$GRADLE_FILE" << 'PYEOF'
           import sys
           path = sys.argv[1]
           with open(path) as f:
               content = f.read()
-
           is_kts = path.endswith(".kts")
-
           if "compileOptions {" in content:
               flag = "isCoreLibraryDesugaringEnabled = true" if is_kts else "coreLibraryDesugaringEnabled true"
-              content = content.replace(
-                  "compileOptions {",
-                  f"compileOptions {{\n        {flag}",
-                  1,
-              )
-
+              content = content.replace("compileOptions {", f"compileOptions {{\n        {flag}", 1)
           dep_line = (
               'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")'
               if is_kts else
               'coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"'
           )
-
           if "dependencies {" in content:
-              content = content.replace(
-                  "dependencies {",
-                  f"dependencies {{\n    {dep_line}",
-                  1,
-              )
+              content = content.replace("dependencies {", f"dependencies {{\n    {dep_line}", 1)
           else:
-              # هیچ بلوک dependencies‌ای وجود نداشت؛ یکی به انتهای فایل اضافه می‌کنیم
               content = content.rstrip() + f"\n\ndependencies {{\n    {dep_line}\n}}\n"
-
           with open(path, "w") as f:
               f.write(content)
-
-          print("---- final file ----")
-          print(content)
           PYEOF
 
       - name: تولید کد دیتابیس (Drift)

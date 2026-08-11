@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
@@ -11,7 +12,15 @@ class InvoiceGenerator {
     required BusinessSetting? business,
     required int totalPaid,
   }) async {
-    final doc = pw.Document();
+    final regularData = await rootBundle.load('assets/fonts/Vazirmatn-Regular.ttf');
+    final boldData = await rootBundle.load('assets/fonts/Vazirmatn-Bold.ttf');
+    final regularFont = pw.Font.ttf(regularData);
+    final boldFont = pw.Font.ttf(boldData);
+
+    final doc = pw.Document(
+      theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
+    );
+
     final cost = order.finalCost ?? order.estimatedCost ?? 0;
     final remaining = cost - totalPaid - order.discount;
     final dateStr = DateFormat('yyyy/MM/dd').format(order.receivedAt);
@@ -29,41 +38,46 @@ class InvoiceGenerator {
                 children: [
                   pw.Text(
                     business?.businessName ?? 'تعمیرگاه',
-                    style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+                    style: pw.TextStyle(font: boldFont, fontSize: 22),
                   ),
-                  pw.Text('فاکتور تعمیر #${order.id}', style: const pw.TextStyle(fontSize: 14)),
+                  pw.Text('فاکتور تعمیر #${order.id}', style: pw.TextStyle(font: regularFont, fontSize: 14)),
                 ],
               ),
               pw.SizedBox(height: 4),
-              pw.Text('تاریخ: $dateStr', style: const pw.TextStyle(fontSize: 12)),
+              pw.Text('تاریخ: $dateStr', style: pw.TextStyle(font: regularFont, fontSize: 12)),
               pw.Divider(height: 24),
-              pw.Text('مشخصات مشتری', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text('مشخصات مشتری', style: pw.TextStyle(font: boldFont)),
               pw.SizedBox(height: 6),
-              pw.Text('نام: ${customer.name}'),
-              pw.Text('تلفن: ${customer.phone}'),
+              pw.Text('نام: ${customer.name}', style: pw.TextStyle(font: regularFont)),
+              pw.Text('تلفن: ${customer.phone}', style: pw.TextStyle(font: regularFont)),
               pw.SizedBox(height: 20),
-              pw.Text('شرح خدمات', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text('شرح خدمات', style: pw.TextStyle(font: boldFont)),
               pw.SizedBox(height: 6),
               pw.Container(
                 padding: const pw.EdgeInsets.all(10),
                 decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey400)),
-                child: pw.Text(order.issueDescription),
+                child: pw.Text(order.issueDescription, style: pw.TextStyle(font: regularFont)),
               ),
               pw.SizedBox(height: 24),
               pw.Divider(),
-              _row('مبلغ کل', '$cost تومان'),
-              if (order.discount > 0) _row('تخفیف', '${order.discount} تومان'),
-              _row('پرداخت‌شده', '$totalPaid تومان'),
+              _row('مبلغ کل', '$cost تومان', regularFont, boldFont),
+              if (order.discount > 0) _row('تخفیف', '${order.discount} تومان', regularFont, boldFont),
+              _row('پرداخت‌شده', '$totalPaid تومان', regularFont, boldFont),
               pw.Divider(),
               _row(
                 'باقی‌مانده',
                 '$remaining تومان',
+                regularFont,
+                boldFont,
                 bold: true,
                 color: remaining > 0 ? PdfColors.red : PdfColors.green800,
               ),
               pw.SizedBox(height: 40),
               pw.Center(
-                child: pw.Text('با تشکر از اعتماد شما', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
+                child: pw.Text(
+                  'با تشکر از اعتماد شما',
+                  style: pw.TextStyle(font: regularFont, fontSize: 12, color: PdfColors.grey700),
+                ),
               ),
             ],
           );
@@ -74,18 +88,25 @@ class InvoiceGenerator {
     return doc.save();
   }
 
-  static pw.Widget _row(String label, String value, {bool bold = false, PdfColor? color}) {
+  static pw.Widget _row(
+    String label,
+    String value,
+    pw.Font regularFont,
+    pw.Font boldFont, {
+    bool bold = false,
+    PdfColor? color,
+  }) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 4),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text(label, style: const pw.TextStyle(fontSize: 13)),
+          pw.Text(label, style: pw.TextStyle(font: regularFont, fontSize: 13)),
           pw.Text(
             value,
             style: pw.TextStyle(
+              font: bold ? boldFont : regularFont,
               fontSize: 13,
-              fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
               color: color,
             ),
           ),
