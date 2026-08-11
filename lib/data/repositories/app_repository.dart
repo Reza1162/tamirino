@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import '../local/database.dart';
 
 class AppRepository {
