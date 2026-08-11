@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
 import 'features/onboarding/onboarding_page.dart';
 
 void main() {
@@ -20,10 +21,7 @@ class TamirinoApp extends StatelessWidget {
           child: child!,
         );
       },
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF2E7D32),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
       home: const OnboardingPage(),
     );
   }

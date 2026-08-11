@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../data/local/db_provider.dart';
+import '../customers/customers_page.dart';
+import '../repair_orders/add_repair_order_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -8,7 +11,17 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تعمیرینو')),
+      appBar: AppBar(
+        title: const Text('تعمیرینو'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.people_outline),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CustomersPage()),
+            ),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<RepairOrder>>(
         stream: DbProvider.repository.watchRepairOrders(),
         builder: (context, snapshot) {
@@ -21,9 +34,6 @@ class DashboardPage extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text('امروز',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -33,41 +43,43 @@ class DashboardPage extends StatelessWidget {
                 childAspectRatio: 1.6,
                 children: [
                   _StatCard(label: 'تعمیرات جدید', value: '$newCount', color: Colors.blue),
-                  _StatCard(label: 'در حال تعمیر', value: '$inProgress', color: Colors.orange),
-                  _StatCard(label: 'آماده تحویل', value: '$ready', color: Colors.green),
+                  _StatCard(label: 'در حال تعمیر', value: '$inProgress', color: AppTheme.warning),
+                  _StatCard(label: 'آماده تحویل', value: '$ready', color: AppTheme.primary),
                   _StatCard(label: 'تحویل داده‌شده', value: '$delivered', color: Colors.grey),
                 ],
               ),
               const SizedBox(height: 24),
               const Text('سفارش‌های اخیر',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
               if (orders.isEmpty)
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(28),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  child: const Text('هنوز سفارشی ثبت نشده',
-                      style: TextStyle(color: Colors.grey)),
+                  child: Column(
+                    children: [
+                      Icon(Icons.inbox_outlined, size: 40, color: Colors.grey.shade400),
+                      const SizedBox(height: 10),
+                      const Text('هنوز سفارشی ثبت نشده',
+                          style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
                 )
               else
-                ...orders.reversed.map((order) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.build_outlined),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(order.issueDescription)),
-                          Text('#${order.id}'),
-                        ],
+                ...orders.reversed.map((order) => Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: AppTheme.primaryLight,
+                          child: Icon(Icons.build_outlined, color: AppTheme.primary),
+                        ),
+                        title: Text(order.issueDescription,
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text('سفارش #${order.id}'),
                       ),
                     )),
               const SizedBox(height: 80),
@@ -76,11 +88,9 @@ class DashboardPage extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('فرم ثبت سفارش در مرحله بعد اضافه می‌شود')),
-          );
-        },
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AddRepairOrderPage()),
+        ),
         icon: const Icon(Icons.add),
         label: const Text('سفارش تعمیر'),
       ),
@@ -100,8 +110,9 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border(right: BorderSide(color: color, width: 4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +120,7 @@ class _StatCard extends StatelessWidget {
         children: [
           Text(value,
               style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+                  fontSize: 26, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 4),
           Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
         ],
