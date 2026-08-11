@@ -29,8 +29,19 @@ jobs:
 
       - name: فعال‌سازی Core Library Desugaring
         run: |
-          sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' android/app/build.gradle
-          sed -i '/^dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' android/app/build.gradle
+          GRADLE_FILE="android/app/build.gradle.kts"
+          if [ ! -f "$GRADLE_FILE" ]; then
+            GRADLE_FILE="android/app/build.gradle"
+          fi
+          echo "Using $GRADLE_FILE"
+          if grep -q "kts" <<< "$GRADLE_FILE"; then
+            sed -i '/compileOptions {/a\        isCoreLibraryDesugaringEnabled = true' "$GRADLE_FILE"
+            sed -i '/^dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' "$GRADLE_FILE"
+          else
+            sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' "$GRADLE_FILE"
+            sed -i '/^dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' "$GRADLE_FILE"
+          fi
+          cat "$GRADLE_FILE" | grep -A2 -B2 desugar
 
       - name: تولید کد دیتابیس (Drift)
         run: dart run build_runner build --delete-conflicting-outputs
