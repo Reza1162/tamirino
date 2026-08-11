@@ -27,6 +27,11 @@ jobs:
         run: |
           sed -i '/<manifest/a\\    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>' android/app/src/main/AndroidManifest.xml
 
+      - name: فعال‌سازی Core Library Desugaring
+        run: |
+          sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' android/app/build.gradle
+          sed -i '/^dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' android/app/build.gradle
+
       - name: تولید کد دیتابیس (Drift)
         run: dart run build_runner build --delete-conflicting-outputs
 
