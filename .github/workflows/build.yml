@@ -34,14 +34,47 @@ jobs:
             GRADLE_FILE="android/app/build.gradle"
           fi
           echo "Using $GRADLE_FILE"
-          if grep -q "kts" <<< "$GRADLE_FILE"; then
-            sed -i '/compileOptions {/a\        isCoreLibraryDesugaringEnabled = true' "$GRADLE_FILE"
-            sed -i '/^dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' "$GRADLE_FILE"
-          else
-            sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' "$GRADLE_FILE"
-            sed -i '/^dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' "$GRADLE_FILE"
-          fi
-          cat "$GRADLE_FILE" | grep -A2 -B2 desugar
+          cat "$GRADLE_FILE"
+          python3 - "$GRADLE_FILE" << 'PYEOF'
+          import sys
+          path = sys.argv[1]
+          with open(path) as f:
+              content = f.read()
+
+          is_kts = path.endswith(".kts")
+
+          if is_kts:
+              if "compileOptions {" in content:
+                  content = content.replace(
+                      "compileOptions {",
+                      "compileOptions {\n        isCoreLibraryDesugaringEnabled = true",
+                      1,
+                  )
+              if "dependencies {" in content:
+                  content = content.replace(
+                      "dependencies {",
+                      'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")',
+                      1,
+                  )
+          else:
+              if "compileOptions {" in content:
+                  content = content.replace(
+                      "compileOptions {",
+                      "compileOptions {\n        coreLibraryDesugaringEnabled true",
+                      1,
+                  )
+              if "dependencies {" in content:
+                  content = content.replace(
+                      "dependencies {",
+                      'dependencies {\n    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"',
+                      1,
+                  )
+
+          with open(path, "w") as f:
+              f.write(content)
+
+          print("patched OK")
+          PYEOF
 
       - name: تولید کد دیتابیس (Drift)
         run: dart run build_runner build --delete-conflicting-outputs
