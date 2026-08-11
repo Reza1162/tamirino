@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../dashboard/dashboard_page.dart';
+import '../../data/local/db_provider.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -29,7 +30,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     {'emoji': '✳️', 'label': 'سایر'},
   ];
 
-  void _nextStep() {
+  void _nextStep() async {
     if (_currentStep == 0 && _selectedJob == null) {
       _showError('لطفاً شغل خودت رو انتخاب کن');
       return;
@@ -50,6 +51,34 @@ class _OnboardingPageState extends State<OnboardingPage> {
         curve: Curves.easeInOut,
       );
     } else {
+      final repo = DbProvider.repository;
+
+      await repo.saveBusinessSettings(
+        businessName: _businessNameController.text.trim(),
+        jobType: _selectedJob!,
+      );
+
+      final customerId = await repo.addCustomer(
+        name: _customerNameController.text.trim(),
+        phone: _customerPhoneController.text.trim(),
+      );
+
+      if (_deviceTypeController.text.trim().isNotEmpty) {
+        final deviceId = await repo.addDevice(
+          customerId: customerId,
+          deviceType: _deviceTypeController.text.trim(),
+        );
+
+        await repo.addRepairOrder(
+          customerId: customerId,
+          deviceId: deviceId,
+          issueDescription: _issueController.text.trim().isEmpty
+              ? 'بدون توضیح'
+              : _issueController.text.trim(),
+        );
+      }
+
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const DashboardPage()),
       );
