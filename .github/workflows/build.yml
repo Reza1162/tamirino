@@ -24,6 +24,9 @@ jobs:
       - name: ساخت پوشه‌های اندروید (در صورت نبود)
         run: flutter create --platforms=android .
 
+      - name: تولید کد دیتابیس (Drift)
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: ساخت APK (نسخه Release)
         run: flutter build apk --release
 

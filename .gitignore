@@ -24,3 +24,6 @@ windows/
 
 # OS
 .DS_Store
+
+# Drift generated code
+*.g.dart
