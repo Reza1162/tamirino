@@ -14,6 +14,7 @@ class OrdersListPage extends StatefulWidget {
 
 class _OrdersListPageState extends State<OrdersListPage> {
   String _filter = 'all';
+  String _query = '';
 
   final _statusTabs = const [
     {'key': 'all', 'label': 'همه'},
@@ -29,6 +30,22 @@ class _OrdersListPageState extends State<OrdersListPage> {
       appBar: AppBar(title: const Text('سفارش‌های تعمیر')),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'جستجوی سفارش...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (v) => setState(() => _query = v.trim()),
+            ),
+          ),
           SizedBox(
             height: 44,
             child: ListView.separated(
@@ -65,6 +82,11 @@ class _OrdersListPageState extends State<OrdersListPage> {
                 var orders = (snapshot.data ?? []).reversed.toList();
                 if (_filter != 'all') {
                   orders = orders.where((o) => o.status == _filter).toList();
+                }
+                if (_query.isNotEmpty) {
+                  orders = orders
+                      .where((o) => o.issueDescription.contains(_query) || '#${o.id}'.contains(_query))
+                      .toList();
                 }
                 if (orders.isEmpty) {
                   return Center(
