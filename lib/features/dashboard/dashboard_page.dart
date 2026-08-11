@@ -48,6 +48,28 @@ class DashboardPage extends StatelessWidget {
                   _StatCard(label: 'تحویل داده‌شده', value: '$delivered', color: Colors.grey),
                 ],
               ),
+              const SizedBox(height: 20),
+              FutureBuilder<List<int>>(
+                future: Future.wait([
+                  DbProvider.repository.todayIncome(),
+                  DbProvider.repository.totalDebt(),
+                ]),
+                builder: (context, snap) {
+                  final income = snap.data?[0] ?? 0;
+                  final debt = snap.data?[1] ?? 0;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _MiniStat(label: 'درآمد امروز', value: '$income تومان', color: AppTheme.primary, icon: Icons.payments_outlined),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _MiniStat(label: 'طلب از مشتریان', value: '$debt تومان', color: AppTheme.danger, icon: Icons.account_balance_wallet_outlined),
+                      ),
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 24),
               const Text('سفارش‌های اخیر',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -123,6 +145,32 @@ class _StatCard extends StatelessWidget {
                   fontSize: 26, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 4),
           Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  final IconData icon;
+  const _MiniStat({required this.label, required this.value, required this.color, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         ],
       ),
     );
