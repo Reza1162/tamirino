@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'features/onboarding/onboarding_page.dart';
+import 'app/main_shell.dart';
+import 'data/local/db_provider.dart';
 
 void main() {
   runApp(const TamirinoApp());
@@ -16,13 +18,19 @@ class TamirinoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       locale: const Locale('fa', 'IR'),
       builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child!,
-        );
+        return Directionality(textDirection: TextDirection.rtl, child: child!);
       },
       theme: AppTheme.light,
-      home: const OnboardingPage(),
+      home: FutureBuilder(
+        future: DbProvider.repository.watchCustomers().first,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          final hasCustomers = (snapshot.data as List).isNotEmpty;
+          return hasCustomers ? const MainShell() : const OnboardingPage();
+        },
+      ),
     );
   }
 }

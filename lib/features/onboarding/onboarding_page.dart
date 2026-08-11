@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../dashboard/dashboard_page.dart';
+import '../../app/main_shell.dart';
 import '../../data/local/db_provider.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -80,7 +80,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardPage()),
+        MaterialPageRoute(builder: (_) => const MainShell()),
       );
     }
   }
