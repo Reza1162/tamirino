@@ -203,6 +203,36 @@ class AppRepository {
     };
   }
 
+  // ---------- یادآوری‌ها ----------
+  Future<int> addReminder({
+    int? repairOrderId,
+    required String title,
+    required DateTime remindAt,
+  }) {
+    return db.into(db.reminders).insert(
+          RemindersCompanion.insert(
+            repairOrderId: Value(repairOrderId),
+            title: title,
+            remindAt: remindAt,
+          ),
+        );
+  }
+
+  Stream<List<Reminder>> watchReminders() {
+    return (db.select(db.reminders)
+          ..orderBy([(t) => OrderingTerm(expression: t.remindAt)]))
+        .watch();
+  }
+
+  Future<void> markReminderDone(int id) async {
+    await (db.update(db.reminders)..where((t) => t.id.equals(id)))
+        .write(const RemindersCompanion(isDone: Value(true)));
+  }
+
+  Future<void> deleteReminder(int id) async {
+    await (db.delete(db.reminders)..where((t) => t.id.equals(id))).go();
+  }
+
     Future<int> todayIncome() async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);

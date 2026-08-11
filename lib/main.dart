@@ -3,8 +3,11 @@ import 'core/theme/app_theme.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'app/main_shell.dart';
 import 'data/local/db_provider.dart';
+import 'core/notifications/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.init();
   runApp(const TamirinoApp());
 }
 
