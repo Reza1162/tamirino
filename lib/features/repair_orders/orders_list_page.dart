@@ -15,6 +15,7 @@ class OrdersListPage extends StatefulWidget {
 class _OrdersListPageState extends State<OrdersListPage> {
   String _filter = 'all';
   String _query = '';
+  String _query = '';
 
   final _statusTabs = const [
     {'key': 'all', 'label': 'همه'},
@@ -74,6 +75,22 @@ class _OrdersListPageState extends State<OrdersListPage> {
               },
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'جستجو در شرح خرابی...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (v) => setState(() => _query = v.trim()),
+            ),
+          ),
           const SizedBox(height: 12),
           Expanded(
             child: StreamBuilder<List<RepairOrder>>(
@@ -82,6 +99,9 @@ class _OrdersListPageState extends State<OrdersListPage> {
                 var orders = (snapshot.data ?? []).reversed.toList();
                 if (_filter != 'all') {
                   orders = orders.where((o) => o.status == _filter).toList();
+                }
+                if (_query.isNotEmpty) {
+                  orders = orders.where((o) => o.issueDescription.contains(_query)).toList();
                 }
                 if (_query.isNotEmpty) {
                   orders = orders

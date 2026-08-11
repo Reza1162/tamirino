@@ -25,7 +25,7 @@ class _CustomersPageState extends State<CustomersPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'جستجوی نام یا شماره تماس...',
+                hintText: 'جستجوی نام یا شماره موبایل...',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.white,
