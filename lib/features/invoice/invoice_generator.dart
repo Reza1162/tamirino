@@ -1,8 +1,9 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:intl/intl.dart';
+import '../../core/utils/jalali_utils.dart';
 import '../../data/local/database.dart';
 
 class InvoiceGenerator {
@@ -23,7 +24,7 @@ class InvoiceGenerator {
 
     final cost = order.finalCost ?? order.estimatedCost ?? 0;
     final remaining = cost - totalPaid - order.discount;
-    final dateStr = DateFormat('yyyy/MM/dd').format(order.receivedAt);
+    final dateStr = JalaliUtils.formatDate(order.receivedAt);
 
     doc.addPage(
       pw.Page(
@@ -36,9 +37,20 @@ class InvoiceGenerator {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text(
-                    business?.businessName ?? 'تعمیرگاه',
-                    style: pw.TextStyle(font: boldFont, fontSize: 22),
+                  pw.Row(
+                    children: [
+                      if (business?.logoPath != null && File(business!.logoPath!).existsSync())
+                        pw.Container(
+                          width: 40,
+                          height: 40,
+                          margin: const pw.EdgeInsets.only(left: 10),
+                          child: pw.Image(pw.MemoryImage(File(business.logoPath!).readAsBytesSync())),
+                        ),
+                      pw.Text(
+                        business?.businessName ?? 'تعمیرگاه',
+                        style: pw.TextStyle(font: boldFont, fontSize: 22),
+                      ),
+                    ],
                   ),
                   pw.Text('فاکتور تعمیر #${order.id}', style: pw.TextStyle(font: regularFont, fontSize: 14)),
                 ],
@@ -72,6 +84,24 @@ class InvoiceGenerator {
                 bold: true,
                 color: remaining > 0 ? PdfColors.red : PdfColors.green800,
               ),
+              if (order.signaturePath != null && File(order.signaturePath!).existsSync()) ...[
+                pw.SizedBox(height: 20),
+                pw.Text('امضای تحویل مشتری', style: pw.TextStyle(font: regularFont, fontSize: 12)),
+                pw.SizedBox(height: 6),
+                pw.Container(
+                  width: 120,
+                  height: 60,
+                  decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300)),
+                  child: pw.Image(pw.MemoryImage(File(order.signaturePath!).readAsBytesSync())),
+                ),
+              ],
+              if (order.warrantyDays != null) ...
+                pw.SizedBox(height: 16),
+                pw.Text(
+                  'این تعمیر دارای ${order.warrantyDays} روز گارانتی است',
+                  style: pw.TextStyle(font: regularFont, fontSize: 12, color: PdfColors.green800),
+                ),
+              ],
               pw.SizedBox(height: 40),
               pw.Center(
                 child: pw.Text(

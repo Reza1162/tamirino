@@ -40,6 +40,9 @@ class RepairOrders extends Table {
   DateTimeColumn get receivedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deliveredAt => dateTime().nullable()();
   TextColumn get notes => text().nullable()();
+  IntColumn get warrantyDays => integer().nullable()();
+  TextColumn get signaturePath => text().nullable()();
+  TextColumn get estimateStatus => text().withDefault(const Constant('pending'))();
 }
 
 // ---------- پرداخت ----------
@@ -65,6 +68,11 @@ class BusinessSettings extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get businessName => text()();
   TextColumn get jobType => text()();
+  TextColumn get logoPath => text().nullable()();
+  BoolColumn get isPro => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get proExpiresAt => dateTime().nullable()();
+  TextColumn get referralCode => text().nullable()();
+  IntColumn get successfulReferrals => integer().withDefault(const Constant(0))();
 }
 
 // ---------- قطعات انبار ----------
@@ -75,6 +83,7 @@ class Parts extends Table {
   IntColumn get purchasePrice => integer().withDefault(const Constant(0))();
   IntColumn get sellPrice => integer().withDefault(const Constant(0))();
   IntColumn get lowStockThreshold => integer().withDefault(const Constant(2))();
+  TextColumn get barcode => text().nullable()();
 }
 
 // ---------- مصرف قطعه در سفارش ----------
@@ -83,6 +92,24 @@ class RepairOrderParts extends Table {
   IntColumn get repairOrderId => integer().references(RepairOrders, #id)();
   IntColumn get partId => integer().references(Parts, #id)();
   IntColumn get quantityUsed => integer().withDefault(const Constant(1))();
+}
+
+// ---------- عکس‌های سفارش ----------
+class OrderPhotos extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get repairOrderId => integer().references(RepairOrders, #id)();
+  TextColumn get filePath => text()();
+  TextColumn get stage => text()(); // 'before' یا 'after'
+  DateTimeColumn get takenAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+// ---------- نوبت‌دهی ----------
+class Appointments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get customerId => integer().nullable().references(Customers, #id)();
+  TextColumn get title => text()();
+  DateTimeColumn get appointmentTime => dateTime()();
+  TextColumn get note => text().nullable()();
 }
 
 @DriftDatabase(tables: [
@@ -94,12 +121,14 @@ class RepairOrderParts extends Table {
   BusinessSettings,
   Parts,
   RepairOrderParts,
+  OrderPhotos,
+  Appointments,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +137,35 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(parts);
             await m.createTable(repairOrderParts);
+          }
+          if (from < 3) {
+            await m.addColumn(businessSettings, businessSettings.logoPath);
+          }
+          if (from < 4) {
+            await m.addColumn(businessSettings, businessSettings.isPro);
+            await m.addColumn(businessSettings, businessSettings.proExpiresAt);
+          }
+          if (from < 5) {
+            await m.addColumn(businessSettings, businessSettings.referralCode);
+            await m.addColumn(businessSettings, businessSettings.successfulReferrals);
+          }
+          if (from < 6) {
+            await m.createTable(orderPhotos);
+          }
+          if (from < 7) {
+            await m.addColumn(repairOrders, repairOrders.warrantyDays);
+          }
+          if (from < 8) {
+            await m.addColumn(repairOrders, repairOrders.signaturePath);
+          }
+          if (from < 9) {
+            await m.addColumn(parts, parts.barcode);
+          }
+          if (from < 10) {
+            await m.addColumn(repairOrders, repairOrders.estimateStatus);
+          }
+          if (from < 11) {
+            await m.createTable(appointments);
           }
         },
       );

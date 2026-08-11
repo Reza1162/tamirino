@@ -3,6 +3,8 @@ import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../data/local/db_provider.dart';
 import '../repair_orders/add_repair_order_page.dart';
+import '../../core/utils/jalali_utils.dart';
+import '../devices/device_detail_page.dart';
 
 class CustomerDetailPage extends StatelessWidget {
   final Customer customer;
@@ -37,7 +39,15 @@ class CustomerDetailPage extends StatelessWidget {
                           Text(customer.phone),
                         ],
                       ),
-                      if (customer.address != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Text('عضویت: ${JalaliUtils.formatDate(customer.createdAt)}'),
+                        ],
+                      ),
+                      if (customer.address != null) ...
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -50,6 +60,36 @@ class CustomerDetailPage extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 20),
+              const Text('دستگاه‌های ثبت‌شده',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              StreamBuilder<List<Device>>(
+                stream: DbProvider.repository.watchDevicesForCustomer(customer.id),
+                builder: (context, snap) {
+                  final devices = snap.data ?? [];
+                  if (devices.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text('دستگاهی ثبت نشده', style: TextStyle(color: Colors.grey.shade600)),
+                    );
+                  }
+                  return Column(
+                    children: devices.map((d) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: const Icon(Icons.devices_other_outlined, color: AppTheme.primary),
+                        title: Text(d.deviceType),
+                        subtitle: d.brand != null ? Text(d.brand!) : null,
+                        trailing: const Icon(Icons.chevron_left, color: Colors.grey),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => DeviceDetailPage(device: d)),
+                        ),
+                      ),
+                    )).toList(),
+                  );
+                },
               ),
               const SizedBox(height: 20),
               const Text('سابقه سفارش‌ها',

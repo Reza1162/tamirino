@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/local/db_provider.dart';
+import '../subscription/subscription_page.dart';
 
 class AddCustomerPage extends StatefulWidget {
   const AddCustomerPage({super.key});
@@ -20,6 +21,11 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
           .showSnackBar(const SnackBar(content: Text('نام مشتری را وارد کنید')));
       return;
     }
+    if (!await DbProvider.repository.canAddCustomer()) {
+      if (!mounted) return;
+      _showLimitDialog();
+      return;
+    }
     setState(() => _saving = true);
     await DbProvider.repository.addCustomer(
       name: _nameController.text.trim(),
@@ -30,6 +36,26 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     );
     if (!mounted) return;
     Navigator.of(context).pop();
+  }
+
+  void _showLimitDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('محدودیت نسخه رایگان'),
+        content: const Text('نسخه رایگان تا ۳۰ مشتری اجازه ثبت می‌دهد. برای ادامه، به نسخه حرفه‌ای ارتقا دهید.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('بعداً')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SubscriptionPage()));
+            },
+            child: const Text('ارتقا'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

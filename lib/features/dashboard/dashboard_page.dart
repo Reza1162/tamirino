@@ -3,6 +3,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../data/local/db_provider.dart';
 import '../reminders/reminders_page.dart';
+import '../appointments/appointments_page.dart';
 import '../customers/customers_page.dart';
 import '../repair_orders/add_repair_order_page.dart';
 
@@ -15,6 +16,12 @@ class DashboardPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('تعمیرینو'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.event_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AppointmentsPage()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => Navigator.of(context).push(

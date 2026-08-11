@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import '../../core/utils/jalali_utils.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../data/local/database.dart';
@@ -44,7 +44,7 @@ class RemindersPage extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  subtitle: Text(DateFormat('yyyy/MM/dd - HH:mm').format(r.remindAt)),
+                  subtitle: Text(JalaliUtils.formatDateTime(r.remindAt)),
                   trailing: r.isDone
                       ? IconButton(
                           icon: const Icon(Icons.delete_outline, color: AppTheme.danger),
@@ -94,7 +94,7 @@ class RemindersPage extends StatelessWidget {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 icon: const Icon(Icons.calendar_today_outlined),
-                label: Text(picked == null ? 'انتخاب تاریخ و ساعت' : DateFormat('yyyy/MM/dd - HH:mm').format(picked!)),
+                label: Text(picked == null ? 'انتخاب تاریخ و ساعت' : JalaliUtils.formatDateTime(picked!)),
                 onPressed: () async {
                   final date = await showDatePicker(
                     context: context,

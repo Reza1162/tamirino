@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../data/local/db_provider.dart';
+import 'package:printing/printing.dart';
+import 'barcode_label_generator.dart';
 
 class InventoryPage extends StatelessWidget {
   const InventoryPage({super.key});
@@ -34,9 +36,24 @@ class InventoryPage extends StatelessWidget {
                   ),
                   title: Text(part.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text('موجودی: ${part.quantity} — قیمت فروش: ${part.sellPrice} تومان'),
-                  trailing: low
-                      ? const Chip(label: Text('موجودی کم'), backgroundColor: Color(0xFFFDEAEA))
-                      : null,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (low)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 6),
+                          child: Chip(label: Text('موجودی کم'), backgroundColor: Color(0xFFFDEAEA)),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.qr_code, color: AppTheme.primary),
+                        tooltip: 'چاپ برچسب بارکد',
+                        onPressed: () async {
+                          final bytes = await BarcodeLabelGenerator.generate(part);
+                          await Printing.sharePdf(bytes: bytes, filename: 'barcode_${part.id}.pdf');
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

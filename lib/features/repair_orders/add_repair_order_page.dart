@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/local/database.dart';
 import '../../data/local/db_provider.dart';
+import '../subscription/subscription_page.dart';
 
 class AddRepairOrderPage extends StatefulWidget {
   final Customer? preselectedCustomer;
@@ -32,6 +33,27 @@ class _AddRepairOrderPageState extends State<AddRepairOrderPage> {
     if (_issueController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('شرح خرابی را وارد کنید')));
+      return;
+    }
+    if (!await DbProvider.repository.canAddOrder()) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('محدودیت نسخه رایگان'),
+          content: const Text('نسخه رایگان تا ۳۰ سفارش فعال اجازه ثبت می‌دهد. برای ادامه، به نسخه حرفه‌ای ارتقا دهید.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('بعداً')),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SubscriptionPage()));
+              },
+              child: const Text('ارتقا'),
+            ),
+          ],
+        ),
+      );
       return;
     }
     setState(() => _saving = true);

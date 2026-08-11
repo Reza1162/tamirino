@@ -3,6 +3,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/local/database.dart';
 import '../../data/local/db_provider.dart';
 import 'add_repair_order_page.dart';
+import 'orders_kanban_page.dart';
 import 'order_detail_page.dart';
 
 class OrdersListPage extends StatefulWidget {
@@ -15,6 +16,7 @@ class OrdersListPage extends StatefulWidget {
 class _OrdersListPageState extends State<OrdersListPage> {
   String _filter = 'all';
   String _query = '';
+  bool _kanbanView = false;
   String _query = '';
 
   final _statusTabs = const [
@@ -28,8 +30,16 @@ class _OrdersListPageState extends State<OrdersListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('سفارش‌های تعمیر')),
-      body: Column(
+      appBar: AppBar(
+        title: const Text('سفارش‌های تعمیر'),
+        actions: [
+          IconButton(
+            icon: Icon(_kanbanView ? Icons.view_list_outlined : Icons.view_kanban_outlined),
+            onPressed: () => setState(() => _kanbanView = !_kanbanView),
+          ),
+        ],
+      ),
+      body: _kanbanView ? const OrdersKanbanPage() : Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),

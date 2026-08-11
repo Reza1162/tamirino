@@ -23,6 +23,97 @@ class AppRepository {
     return rows.isEmpty ? null : rows.first;
   }
 
+  Future<void> updateLogo(String logoPath) async {
+    final existing = await getBusinessSettings();
+    if (existing == null) return;
+    await (db.update(db.businessSettings)..where((t) => t.id.equals(existing.id)))
+        .write(BusinessSettingsCompanion(logoPath: Value(logoPath)));
+  }
+
+  // ---------- اشتراک ----------
+  static const int freeCustomerLimit = 30;
+  static const int freeOrderLimit = 30;
+
+  Future<bool> isPro() async {
+    final settings = await getBusinessSettings();
+    if (settings == null) return false;
+    if (!settings.isPro) return false;
+    if (settings.proExpiresAt != null && settings.proExpiresAt!.isBefore(DateTime.now())) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> activatePro({required Duration duration}) async {
+    final existing = await getBusinessSettings();
+    if (existing == null) return;
+    await (db.update(db.businessSettings)..where((t) => t.id.equals(existing.id))).write(
+      BusinessSettingsCompanion(
+        isPro: const Value(true),
+        proExpiresAt: Value(DateTime.now().add(duration)),
+      ),
+    );
+  }
+
+  Future<int> customerCount() async {
+    final rows = await db.select(db.customers).get();
+    return rows.length;
+  }
+
+  Future<int> orderCount() async {
+    final rows = await db.select(db.repairOrders).get();
+    return rows.length;
+  }
+
+  /// بررسی اینکه آیا افزودن مشتری جدید مجاز است
+  Future<bool> canAddCustomer() async {
+    if (await isPro()) return true;
+    return (await customerCount()) < freeCustomerLimit;
+  }
+
+  /// بررسی اینکه آیا ثبت سفارش جدید مجاز است
+  Future<bool> canAddOrder() async {
+    if (await isPro()) return true;
+    return (await orderCount()) < freeOrderLimit;
+  }
+
+  // ---------- دعوت دوستان ----------
+  Future<String> getOrCreateReferralCode() async {
+    final existing = await getBusinessSettings();
+    if (existing == null) return '';
+    if (existing.referralCode != null && existing.referralCode!.isNotEmpty) {
+      return existing.referralCode!;
+    }
+    final code = 'TMR${existing.id.toString().padLeft(4, '0')}${DateTime.now().millisecondsSinceEpoch % 1000}';
+    await (db.update(db.businessSettings)..where((t) => t.id.equals(existing.id)))
+        .write(BusinessSettingsCompanion(referralCode: Value(code)));
+    return code;
+  }
+
+  Future<int> referralRewardDays() async {
+    final settings = await getBusinessSettings();
+    return (settings?.successfulReferrals ?? 0) * 7;
+  }
+
+  /// وقتی یک دعوت موفق ثبت می‌شود (فعلاً به‌صورت دستی/تستی)
+  Future<void> registerSuccessfulReferral() async {
+    final existing = await getBusinessSettings();
+    if (existing == null) return;
+    final newCount = existing.successfulReferrals + 1;
+    await (db.update(db.businessSettings)..where((t) => t.id.equals(existing.id)))
+        .write(BusinessSettingsCompanion(successfulReferrals: Value(newCount)));
+
+    // پاداش ۷ روز حرفه‌ای رایگان
+    final currentExpiry = existing.proExpiresAt ?? DateTime.now();
+    final base = currentExpiry.isAfter(DateTime.now()) ? currentExpiry : DateTime.now();
+    await (db.update(db.businessSettings)..where((t) => t.id.equals(existing.id))).write(
+      BusinessSettingsCompanion(
+        isPro: const Value(true),
+        proExpiresAt: Value(base.add(const Duration(days: 7))),
+      ),
+    );
+  }
+
   // ---------- مشتری ----------
   Future<int> addCustomer({
     required String name,
@@ -68,6 +159,42 @@ class AppRepository {
         .write(RepairOrdersCompanion(finalCost: Value(finalCost)));
   }
 
+  Future<void> setEstimateStatus(int orderId, String status) async {
+    await (db.update(db.repairOrders)..where((t) => t.id.equals(orderId)))
+        .write(RepairOrdersCompanion(estimateStatus: Value(status)));
+  }
+
+  Future<void> setInternalNote(int orderId, String note) async {
+    await (db.update(db.repairOrders)..where((t) => t.id.equals(orderId)))
+        .write(RepairOrdersCompanion(notes: Value(note)));
+  }
+
+  Future<void> setSignature(int orderId, String signaturePath) async {
+    await (db.update(db.repairOrders)..where((t) => t.id.equals(orderId)))
+        .write(RepairOrdersCompanion(signaturePath: Value(signaturePath)));
+  }
+
+  Future<void> setWarranty(int orderId, int warrantyDays) async {
+    await (db.update(db.repairOrders)..where((t) => t.id.equals(orderId))).write(
+      RepairOrdersCompanion(
+        warrantyDays: Value(warrantyDays),
+        deliveredAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// وضعیت گارانتی: null یعنی گارانتی ثبت نشده
+  static bool? isUnderWarranty(RepairOrder order) {
+    if (order.warrantyDays == null || order.deliveredAt == null) return null;
+    final expiry = order.deliveredAt!.add(Duration(days: order.warrantyDays!));
+    return DateTime.now().isBefore(expiry);
+  }
+
+  static DateTime? warrantyExpiryDate(RepairOrder order) {
+    if (order.warrantyDays == null || order.deliveredAt == null) return null;
+    return order.deliveredAt!.add(Duration(days: order.warrantyDays!));
+  }
+
   Future<int> countOrdersByStatus(String status) async {
     final rows = await (db.select(db.repairOrders)
           ..where((t) => t.status.equals(status)))
@@ -81,6 +208,7 @@ class AppRepository {
     required String deviceType,
     String? brand,
     String? model,
+    String? serialNumber,
   }) {
     return db.into(db.devices).insert(
           DevicesCompanion.insert(
@@ -88,8 +216,21 @@ class AppRepository {
             deviceType: deviceType,
             brand: Value(brand),
             model: Value(model),
+            serialNumber: Value(serialNumber),
           ),
         );
+  }
+
+  Stream<List<Device>> watchDevicesForCustomer(int customerId) {
+    return (db.select(db.devices)..where((t) => t.customerId.equals(customerId))).watch();
+  }
+
+  Future<Device?> getDevice(int id) {
+    return (db.select(db.devices)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  Stream<List<RepairOrder>> watchOrdersForDevice(int deviceId) {
+    return (db.select(db.repairOrders)..where((t) => t.deviceId.equals(deviceId))).watch();
   }
 
   // ---------- پرداخت و بدهی ----------
@@ -141,8 +282,8 @@ class AppRepository {
     required int quantity,
     required int purchasePrice,
     required int sellPrice,
-  }) {
-    return db.into(db.parts).insert(
+  }) async {
+    final id = await db.into(db.parts).insert(
           PartsCompanion.insert(
             name: name,
             quantity: Value(quantity),
@@ -150,6 +291,10 @@ class AppRepository {
             sellPrice: Value(sellPrice),
           ),
         );
+    final code = 'TMR-P${id.toString().padLeft(5, '0')}';
+    await (db.update(db.parts)..where((t) => t.id.equals(id)))
+        .write(PartsCompanion(barcode: Value(code)));
+    return id;
   }
 
   Stream<List<Part>> watchParts() => db.select(db.parts).watch();
@@ -174,6 +319,56 @@ class AppRepository {
           ),
         );
     await adjustPartQuantity(partId, -quantityUsed);
+  }
+
+  // ---------- نوبت‌دهی ----------
+  Future<int> addAppointment({
+    int? customerId,
+    required String title,
+    required DateTime appointmentTime,
+    String? note,
+  }) {
+    return db.into(db.appointments).insert(
+          AppointmentsCompanion.insert(
+            customerId: Value(customerId),
+            title: title,
+            appointmentTime: appointmentTime,
+            note: Value(note),
+          ),
+        );
+  }
+
+  Stream<List<Appointment>> watchAppointments() {
+    return (db.select(db.appointments)
+          ..orderBy([(t) => OrderingTerm(expression: t.appointmentTime)]))
+        .watch();
+  }
+
+  Future<void> deleteAppointment(int id) async {
+    await (db.delete(db.appointments)..where((t) => t.id.equals(id))).go();
+  }
+
+  // ---------- عکس‌های سفارش ----------
+  Future<void> addOrderPhoto({
+    required int repairOrderId,
+    required String filePath,
+    required String stage,
+  }) async {
+    await db.into(db.orderPhotos).insert(
+          OrderPhotosCompanion.insert(
+            repairOrderId: repairOrderId,
+            filePath: filePath,
+            stage: stage,
+          ),
+        );
+  }
+
+  Stream<List<OrderPhoto>> watchOrderPhotos(int orderId) {
+    return (db.select(db.orderPhotos)..where((t) => t.repairOrderId.equals(orderId))).watch();
+  }
+
+  Future<void> deleteOrderPhoto(int id) async {
+    await (db.delete(db.orderPhotos)..where((t) => t.id.equals(id))).go();
   }
 
   // ---------- گزارش سود ----------
