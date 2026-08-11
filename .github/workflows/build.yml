@@ -34,7 +34,6 @@ jobs:
             GRADLE_FILE="android/app/build.gradle"
           fi
           echo "Using $GRADLE_FILE"
-          cat "$GRADLE_FILE"
           python3 - "$GRADLE_FILE" << 'PYEOF'
           import sys
           path = sys.argv[1]
@@ -43,37 +42,35 @@ jobs:
 
           is_kts = path.endswith(".kts")
 
-          if is_kts:
-              if "compileOptions {" in content:
-                  content = content.replace(
-                      "compileOptions {",
-                      "compileOptions {\n        isCoreLibraryDesugaringEnabled = true",
-                      1,
-                  )
-              if "dependencies {" in content:
-                  content = content.replace(
-                      "dependencies {",
-                      'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")',
-                      1,
-                  )
+          if "compileOptions {" in content:
+              flag = "isCoreLibraryDesugaringEnabled = true" if is_kts else "coreLibraryDesugaringEnabled true"
+              content = content.replace(
+                  "compileOptions {",
+                  f"compileOptions {{\n        {flag}",
+                  1,
+              )
+
+          dep_line = (
+              'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")'
+              if is_kts else
+              'coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"'
+          )
+
+          if "dependencies {" in content:
+              content = content.replace(
+                  "dependencies {",
+                  f"dependencies {{\n    {dep_line}",
+                  1,
+              )
           else:
-              if "compileOptions {" in content:
-                  content = content.replace(
-                      "compileOptions {",
-                      "compileOptions {\n        coreLibraryDesugaringEnabled true",
-                      1,
-                  )
-              if "dependencies {" in content:
-                  content = content.replace(
-                      "dependencies {",
-                      'dependencies {\n    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"',
-                      1,
-                  )
+              # هیچ بلوک dependencies‌ای وجود نداشت؛ یکی به انتهای فایل اضافه می‌کنیم
+              content = content.rstrip() + f"\n\ndependencies {{\n    {dep_line}\n}}\n"
 
           with open(path, "w") as f:
               f.write(content)
 
-          print("patched OK")
+          print("---- final file ----")
+          print(content)
           PYEOF
 
       - name: تولید کد دیتابیس (Drift)
