@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/local/db_provider.dart';
 import '../../core/share/eitaa_share.dart';
+import '../../data/local/db_provider.dart';
 
 class ReferralPage extends StatelessWidget {
   const ReferralPage({super.key});
@@ -59,11 +59,9 @@ class ReferralPage extends StatelessWidget {
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.telegram_outlined),
                   label: const Text('اشتراک‌گذاری در ایتا'),
-                  onPressed: () {
-                    EitaaShare.shareText(
-                      'من از اپ تعمیرینو برای مدیریت تعمیرگاهم استفاده می‌کنم! با کد من ثبت‌نام کن تا هر دومون ۷ روز اشتراک حرفه‌ای رایگان بگیریم: $code',
-                    );
-                  },
+                  onPressed: () => EitaaShare.shareText(
+                    'من از اپ تعمیرینو برای مدیریت تعمیرگاهم استفاده می‌کنم! با کد من ثبت‌نام کن تا هر دومون ۷ روز اشتراک حرفه‌ای رایگان بگیریم: $code',
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -72,13 +70,9 @@ class ReferralPage extends StatelessWidget {
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.share_outlined),
                   label: const Text('اشتراک‌گذاری با روش‌های دیگر'),
-                  onPressed: () {
-                    SharePlus.instance.share(
-                      ShareParams(
-                        text: 'من از اپ تعمیرینو برای مدیریت تعمیرگاهم استفاده می‌کنم! با کد من ثبت‌نام کن تا هر دومون ۷ روز اشتراک حرفه‌ای رایگان بگیریم: $code',
-                      ),
-                    );
-                  },
+                  onPressed: () => Share.share(
+                    'من از اپ تعمیرینو برای مدیریت تعمیرگاهم استفاده می‌کنم! با کد من ثبت‌نام کن تا هر دومون ۷ روز اشتراک حرفه‌ای رایگان بگیریم: $code',
+                  ),
                 ),
               ),
               const SizedBox(height: 30),

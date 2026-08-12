@@ -10,34 +10,19 @@ class BackupService {
     return File('${dir.path}/tamirino.sqlite');
   }
 
-  /// ساخت یک کپی از فایل دیتابیس و اشتراک‌گذاری آن
   static Future<void> exportBackup() async {
     final dbFile = await _dbFile();
-    if (!await dbFile.exists()) {
-      throw Exception('فایل دیتابیس یافت نشد');
-    }
+    if (!await dbFile.exists()) throw Exception('فایل دیتابیس یافت نشد');
     final tempDir = await getTemporaryDirectory();
     final dateStr = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
     final backupPath = '${tempDir.path}/tamirino_backup_$dateStr.sqlite';
     await dbFile.copy(backupPath);
-
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(backupPath)],
-        text: 'فایل پشتیبان تعمیرینو',
-      ),
-    );
+    await Share.shareXFiles([XFile(backupPath)], text: 'فایل پشتیبان تعمیرینو');
   }
 
-  /// انتخاب فایل پشتیبان و جایگزینی دیتابیس فعلی
-  /// توجه: بعد از این عملیات باید اپ کامل بسته و دوباره باز شود
   static Future<bool> importBackup() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-    );
-    if (result == null || result.files.single.path == null) {
-      return false;
-    }
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result == null || result.files.single.path == null) return false;
     final pickedFile = File(result.files.single.path!);
     final dbFile = await _dbFile();
     await pickedFile.copy(dbFile.path);
