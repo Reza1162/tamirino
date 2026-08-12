@@ -4,7 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../../core/theme/app_theme.dart';
+import '../../core/backup/backup_service.dart';
 import '../../data/local/db_provider.dart';
+import '../subscription/subscription_page.dart';
+import '../referral/referral_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -45,13 +48,90 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
+              FutureBuilder<bool>(
+                future: DbProvider.repository.isPro(),
+                builder: (context, snap) {
+                  final isPro = snap.data ?? false;
+                  return Card(
+                    color: isPro ? AppTheme.primaryLight : null,
+                    child: ListTile(
+                      leading: Icon(
+                        isPro ? Icons.verified : Icons.workspace_premium_outlined,
+                        color: AppTheme.primary,
+                      ),
+                      title: Text(isPro ? 'اشتراک حرفه‌ای فعال' : 'ارتقا به حرفه‌ای'),
+                      subtitle: Text(isPro ? 'همه امکانات باز است' : 'نامحدود، بدون محدودیت مشتری'),
+                      trailing: const Icon(Icons.chevron_left, color: Colors.grey),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SubscriptionPage()),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              const Text('پشتیبان‌گیری', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: ListTile(
+                  leading: const Icon(Icons.backup_outlined, color: AppTheme.primary),
+                  title: const Text('تهیه فایل پشتیبان'),
+                  subtitle: const Text('ذخیره یا اشتراک‌گذاری کل اطلاعات'),
+                  trailing: const Icon(Icons.chevron_left, color: Colors.grey),
+                  onTap: () async {
+                    try {
+                      await BackupService.exportBackup();
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('خطا: $e')),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+              Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: ListTile(
+                  leading: const Icon(Icons.restore_outlined, color: AppTheme.warning),
+                  title: const Text('بازگردانی از فایل پشتیبان'),
+                  subtitle: const Text('جایگزینی اطلاعات فعلی با نسخه پشتیبان'),
+                  trailing: const Icon(Icons.chevron_left, color: Colors.grey),
+                  onTap: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('هشدار'),
+                        content: const Text(
+                            'با بازگردانی، اطلاعات فعلی جایگزین می‌شود. بعد از این عملیات باید اپ را کامل ببندید و دوباره باز کنید. ادامه می‌دهید؟'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('انصراف')),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('بله، ادامه')),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true) return;
+                    final success = await BackupService.importBackup();
+                    if (context.mounted && success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('بازگردانی انجام شد. اپ را کامل ببندید و دوباره باز کنید.')),
+                      );
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text('درباره', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
               const _SettingsTile(icon: Icons.info_outline, title: 'درباره تعمیرینو'),
               const _SettingsTile(icon: Icons.support_agent_outlined, title: 'پشتیبانی'),
               _NavTile(
                 icon: Icons.share_outlined,
                 title: 'دعوت از دوستان',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => ReferralPage()),
+                  MaterialPageRoute(builder: (_) => const ReferralPage()),
                 ),
               ),
             ],
@@ -101,7 +181,6 @@ class _NavTile extends StatelessWidget {
   }
 }
 
-
 class _LogoPicker extends StatefulWidget {
   final String? logoPath;
   const _LogoPicker({required this.logoPath});
@@ -126,7 +205,7 @@ class _LogoPickerState extends State<_LogoPicker> {
 
     final dir = await getApplicationDocumentsDirectory();
     final ext = p.extension(picked.path);
-    final savedPath = p.join(dir.path, 'business_logo\$ext');
+    final savedPath = p.join(dir.path, 'business_logo$ext');
     await File(picked.path).copy(savedPath);
 
     await DbProvider.repository.updateLogo(savedPath);
