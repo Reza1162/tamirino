@@ -22,53 +22,74 @@ jobs:
           mkdir -p assets/fonts
           curl -L -o assets/fonts/Vazirmatn-Regular.ttf https://github.com/rastikerdar/vazirmatn/raw/main/fonts/ttf/Vazirmatn-Regular.ttf
           curl -L -o assets/fonts/Vazirmatn-Bold.ttf https://github.com/rastikerdar/vazirmatn/raw/main/fonts/ttf/Vazirmatn-Bold.ttf
-          ls -la assets/fonts/
 
       - name: نصب پکیج‌ها
         run: flutter pub get
 
-      - name: ساخت پوشه‌های اندروید (در صورت نبود)
+      - name: ساخت پوشه‌های اندروید
         run: flutter create --platforms=android .
 
-      - name: افزودن مجوز اعلان به AndroidManifest
-        run: |
-          sed -i '/<manifest/a\\    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\\n    <uses-permission android:name="android.permission.CAMERA"/>' android/app/src/main/AndroidManifest.xml
-
-      - name: فعال‌سازی Core Library Desugaring
+      - name: پچ Gradle (compileSdk + desugaring + مجوزها)
         run: |
           GRADLE_FILE="android/app/build.gradle.kts"
           if [ ! -f "$GRADLE_FILE" ]; then
             GRADLE_FILE="android/app/build.gradle"
           fi
           python3 - "$GRADLE_FILE" << 'PYEOF'
-          import sys
+          import sys, re
           path = sys.argv[1]
           with open(path) as f:
               content = f.read()
           is_kts = path.endswith(".kts")
+
+          # compileSdk رو به 36 ارتقا بده
+          if is_kts:
+              content = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', content)
+          else:
+              content = re.sub(r'compileSdkVersion\s+\d+', 'compileSdkVersion 36', content)
+              content = re.sub(r'compileSdk\s+\d+', 'compileSdk 36', content)
+
+          # desugaring
           if "compileOptions {" in content:
               flag = "isCoreLibraryDesugaringEnabled = true" if is_kts else "coreLibraryDesugaringEnabled true"
-              content = content.replace("compileOptions {", f"compileOptions {{\n        {flag}", 1)
+              if flag not in content:
+                  content = content.replace("compileOptions {", f"compileOptions {{\n        {flag}", 1)
+
           dep_line = (
               'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")'
               if is_kts else
               'coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"'
           )
-          if "dependencies {" in content:
-              content = content.replace("dependencies {", f"dependencies {{\n    {dep_line}", 1)
-          else:
-              content = content.rstrip() + f"\n\ndependencies {{\n    {dep_line}\n}}\n"
+          if dep_line not in content:
+              if "dependencies {" in content:
+                  content = content.replace("dependencies {", f"dependencies {{\n    {dep_line}", 1)
+              else:
+                  content = content.rstrip() + f"\n\ndependencies {{\n    {dep_line}\n}}\n"
+
           with open(path, "w") as f:
               f.write(content)
+          print("patched OK")
           PYEOF
+
+      - name: افزودن مجوزها به AndroidManifest
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          for PERM in \
+            "android.permission.POST_NOTIFICATIONS" \
+            "android.permission.SCHEDULE_EXACT_ALARM" \
+            "android.permission.CAMERA"; do
+            if ! grep -q "$PERM" "$MANIFEST"; then
+              sed -i "/<manifest/a\\    <uses-permission android:name=\"$PERM\"/>" "$MANIFEST"
+            fi
+          done
 
       - name: تولید کد دیتابیس (Drift)
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: ساخت APK (نسخه Release)
+      - name: ساخت APK
         run: flutter build apk --release
 
-      - name: بارگذاری APK به‌عنوان Artifact
+      - name: بارگذاری APK
         uses: actions/upload-artifact@v4
         with:
           name: tamirino-apk
