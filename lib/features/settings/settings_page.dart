@@ -51,7 +51,7 @@ class SettingsPage extends StatelessWidget {
                 icon: Icons.share_outlined,
                 title: 'دعوت از دوستان',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ReferralPage()),
+                  MaterialPageRoute(builder: (_) => ReferralPage()),
                 ),
               ),
             ],

@@ -17,7 +17,6 @@ class _OrdersListPageState extends State<OrdersListPage> {
   String _filter = 'all';
   String _query = '';
   bool _kanbanView = false;
-  String _query = '';
 
   final _statusTabs = const [
     {'key': 'all', 'label': 'همه'},
