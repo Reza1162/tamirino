@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/jalali_utils.dart';
 import '../../data/local/database.dart';
 import '../../data/local/db_provider.dart';
-import '../repair_orders/add_repair_order_page.dart';
-import '../../core/utils/jalali_utils.dart';
 import '../devices/device_detail_page.dart';
+import '../repair_orders/add_repair_order_page.dart';
 
 class CustomerDetailPage extends StatelessWidget {
   final Customer customer;
@@ -47,7 +47,7 @@ class CustomerDetailPage extends StatelessWidget {
                           Text('عضویت: ${JalaliUtils.formatDate(customer.createdAt)}'),
                         ],
                       ),
-                      if (customer.address != null) ...
+                      if (customer.address != null) ...[
                         const SizedBox(height: 8),
                         Row(
                           children: [

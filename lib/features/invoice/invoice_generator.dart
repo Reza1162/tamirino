@@ -95,7 +95,7 @@ class InvoiceGenerator {
                   child: pw.Image(pw.MemoryImage(File(order.signaturePath!).readAsBytesSync())),
                 ),
               ],
-              if (order.warrantyDays != null) ...
+              if (order.warrantyDays != null) ...[
                 pw.SizedBox(height: 16),
                 pw.Text(
                   'این تعمیر دارای ${order.warrantyDays} روز گارانتی است',
