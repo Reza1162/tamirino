@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:intl/intl.dart';
 
 class BackupService {
@@ -21,11 +21,11 @@ class BackupService {
   }
 
   static Future<bool> importBackup() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
-    if (result == null || result.files.single.path == null) return false;
-    final pickedFile = File(result.files.single.path!);
+    const typeGroup = XTypeGroup(label: 'backup', extensions: ['sqlite', 'db']);
+    final file = await openFile(acceptedTypeGroups: [typeGroup]);
+    if (file == null) return false;
     final dbFile = await _dbFile();
-    await pickedFile.copy(dbFile.path);
+    await File(file.path).copy(dbFile.path);
     return true;
   }
 }
